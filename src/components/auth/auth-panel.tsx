@@ -151,7 +151,7 @@ export function AuthPanel() {
                 <Label htmlFor="name">Full name</Label>
                 <Input
                   id="name"
-                  placeholder="Vansh Kumar"
+                  placeholder="enter name"
                   autoComplete="name"
                   {...form.register("name")}
                 />
