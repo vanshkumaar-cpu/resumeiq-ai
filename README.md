@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ResumeIQ AI
 
-## Getting Started
+A premium AI resume analyzer: ATS scoring, keyword matching, AI-rewritten
+resume sections, and tailored interview prep — built with Next.js 16
+(App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Framer Motion,
+Prisma + Postgres, and the Gemini API.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Install dependencies:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   ```bash
+   npm install
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. Configure environment variables in `.env`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   DATABASE_URL="postgresql://..."   # Postgres connection string
+   SESSION_SECRET="..."              # already generated for local dev
+   GEMINI_API_KEY="your-key-from-ai-studio"
+   ```
 
-## Learn More
+   Get a Gemini key from [Google AI Studio](https://aistudio.google.com/apikey).
+   Without it, sign-up/login/dashboard/history all work, but resume
+   analysis requests will fail with a clear error.
 
-To learn more about Next.js, take a look at the following resources:
+3. Apply migrations:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npx prisma migrate deploy
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Run the dev server:
 
-## Deploy on Vercel
+   ```bash
+   npm run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   Open [http://localhost:3000](http://localhost:3000). You'll be redirected
+   to `/login` — create an account to get into the dashboard.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploying on Railway
+
+This repo ships a `railway.json` (build/start/pre-deploy commands) and a
+`postinstall` script (`prisma generate`) so Railway's default Nixpacks
+builder works out of the box:
+
+1. Create a Railway project, add a **Postgres** database to it, and add a
+   service connected to this repo's GitHub remote.
+2. On the app service, set env vars: `SESSION_SECRET` and `GEMINI_API_KEY`.
+   `DATABASE_URL` is provided automatically if you reference the Postgres
+   plugin's variable (`${{Postgres.DATABASE_URL}}`).
+3. Push to the connected branch — Railway builds, runs
+   `prisma migrate deploy` as a pre-deploy step, then starts the app.
+
+## Stack notes
+
+- **Auth**: custom email/password auth — bcrypt password hashing, JWT
+  session cookies signed with `jose`, route protection via `src/proxy.ts`
+  (this Next.js version renamed `middleware.ts` to `proxy.ts`).
+- **Database**: Prisma 7 with the new `prisma-client` generator (output at
+  `src/generated/prisma`) and the `@prisma/adapter-pg` driver adapter,
+  which Prisma 7 requires at runtime.
+- **AI**: `@google/genai` calling `gemini-flash-latest` with structured JSON
+  output (`responseJsonSchema`) so responses are validated JSON, not
+  parsed prose. See `src/lib/ai/`. Free-tier keys currently have 0 quota
+  for `gemini-2.5-pro` — the flash alias is what works without billing.
+- **Resume parsing**: `pdf-parse` v2 (`PDFParse` class) for PDFs, `mammoth`
+  for DOCX, plain text for `.txt`.
+
+## Scripts
+
+- `npm run dev` — start the dev server
+- `npm run build` — production build (runs TypeScript checks)
+- `npm run lint` — ESLint
+- `npx prisma studio` — browse the database
+- `npx prisma migrate dev` — create/apply a migration locally
+- `npx prisma migrate deploy` — apply migrations (used in production)

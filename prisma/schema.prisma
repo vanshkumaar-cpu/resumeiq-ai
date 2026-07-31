@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  avatarColor  String   @default("#2563EB")
+  jobTitle     String?
+  location     String?
+  theme        String   @default("system")
+  notifications Boolean @default(true)
+  language     String   @default("en")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  analyses Analysis[]
+}
+
+model Analysis {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  resumeFilename  String
+  resumeText      String
+  jobDescription  String
+  companyName     String?
+  jobTitle        String?
+
+  atsScore        Int
+  matchScore      Int
+  overallScore    Int
+
+  resultJson      String // full structured AI analysis result, serialized JSON
+
+  createdAt       DateTime @default(now())
+}
